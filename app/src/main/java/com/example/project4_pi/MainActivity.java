@@ -2,7 +2,10 @@ package com.example.project4_pi;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
@@ -12,11 +15,34 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // przycisk do czyszczenia ekranu
+        DrawingSurface drawingSurface = findViewById(R.id.drawingSurface);
+        // clear surface
         Button clearButton = findViewById(R.id.clear);
         clearButton.setOnClickListener(v->{
-            DrawingSurface drawingSurface = findViewById(R.id.drawingSurface);
-            drawingSurface.invalidate();
+
+            drawingSurface.clearScreen();
         });
+
+        // change color to green
+        Button changeGreen = findViewById(R.id.green);
+        changeGreen.setOnClickListener(v->{
+            drawingSurface.setColor(Color.GREEN);
+        });
+        // change color to red
+        Button changeRed = findViewById(R.id.red);
+        changeRed.setOnClickListener(v->{
+            drawingSurface.setColor(Color.RED);
+        });
+        // change color to blue
+        Button changeBlue = findViewById(R.id.blue);
+        changeBlue.setOnClickListener(v->{
+            drawingSurface.setColor(Color.BLUE);
+        });
+        // change color to yellow
+        Button changeYellow = findViewById(R.id.yellow);
+        changeYellow.setOnClickListener(v->{
+            drawingSurface.setColor(Color.YELLOW);
+        });
+
     }
 }
