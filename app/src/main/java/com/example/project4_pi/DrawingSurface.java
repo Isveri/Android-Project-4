@@ -7,130 +7,108 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
-import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 
 public class DrawingSurface extends View {
 
-    static Path drawPath;
-    //drawing and canvas paint
-    private Paint drawPaint, canvasPaint;
-    //initial color
-    static int paintColor = 0xFFFF0000;
-    //stroke width
+    static Path drawingPath;
+    private Paint drawPaint, canvasPaint, circlePaint;
+    static int baseColor = 0xFFFF0000;
     private  float STROKE_WIDTH = 5f;
-    //canvas
-    private Canvas drawCanvas;
-    //canvas bitmap
-    private Bitmap canvasBitmap;
-    //eraser mode
-    private boolean erase=false;
+    private Canvas canvas;
+    private Bitmap bitmap;
 
-    //constructor
-    public DrawingSurface(Context context, AttributeSet attrs){
-        super(context, attrs);
-        setupDrawing();
-        setErase(erase);
+
+    //constructors
+    public DrawingSurface(Context context){
+        super(context);
+        init();
     }
 
+    public DrawingSurface(Context context, AttributeSet attrs){
+        super(context, attrs);
+        init();
+    }
 
-    private void setupDrawing(){
-        drawPath = new Path();
+    public DrawingSurface(Context context, AttributeSet attrs,
+                          int defStyleAttr){
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+
+    //initialization
+    private void init(){
+        drawingPath = new Path();
         drawPaint = new Paint();
-        drawPaint.setColor(paintColor);
+        drawPaint.setColor(baseColor);
         drawPaint.setAntiAlias(true);
         drawPaint.setStrokeWidth(STROKE_WIDTH);
         drawPaint.setStyle(Paint.Style.STROKE);
         drawPaint.setStrokeJoin(Paint.Join.ROUND);
         drawPaint.setStrokeCap(Paint.Cap.ROUND);
+        circlePaint = new Paint();
+        circlePaint.setColor(baseColor);
+        circlePaint.setAntiAlias(true);
+        circlePaint.setStrokeWidth(STROKE_WIDTH);
+        circlePaint.setStyle(Paint.Style.FILL);
         canvasPaint = new Paint(Paint.DITHER_FLAG);
     }
 
-    //*************************************** View assigned size  ****************************************************
-
+    // zmiana rozmiaru w przypadku przekrecenia ekranu
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        drawCanvas = new Canvas(canvasBitmap);
+        bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(bitmap);
     }
-
-    public void setErase(boolean isErase){
-        erase=isErase;
-        drawPaint = new Paint();
-        if(erase) {
-            setupDrawing();
-            int srcColor= 0x00000000;
-
-            PorterDuff.Mode mode = PorterDuff.Mode.CLEAR;
-            PorterDuffColorFilter porterDuffColorFilter = new PorterDuffColorFilter(srcColor, mode);
-
-            drawPaint.setColorFilter(porterDuffColorFilter);
-
-            drawPaint.setColor(srcColor);
-            drawPaint.setXfermode(new PorterDuffXfermode(mode));
-
-        }
-        else {
-
-            setupDrawing();
-
-        }
-    }
-
-    //************************************   draw view  *************************************************************
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
-        canvas.drawPath(drawPath, drawPaint);
+        canvas.drawBitmap(bitmap, 0, 0, canvasPaint);
+        canvas.drawPath(drawingPath, drawPaint);
     }
 
-    //***************************   respond to touch interaction   **************************************************
-
+    // obsluga listenera
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
-        canvasPaint.setColor(paintColor);
-        float touchX = event.getX();
-        float touchY = event.getY();
-        //respond to down, move and up events
+        canvasPaint.setColor(baseColor);
+        float X = event.getX();
+        float Y = event.getY();
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                drawCanvas.drawCircle(touchX,touchY,10,drawPaint);
-                drawPath.moveTo(touchX, touchY);
+                canvas.drawCircle(X,Y,10,circlePaint);
+                drawingPath.moveTo(X, Y);
                 break;
             case MotionEvent.ACTION_MOVE:
-                drawCanvas.drawPath(drawPath, drawPaint);
-                drawPath.lineTo(touchX, touchY);
+                canvas.drawPath(drawingPath, drawPaint);
+                drawingPath.lineTo(X, Y);
                 break;
             case MotionEvent.ACTION_UP:
-                drawPath.lineTo(touchX, touchY);
-                drawCanvas.drawPath(drawPath, drawPaint);
-                drawCanvas.drawCircle(touchX,touchY,10,drawPaint);
-                drawPath.reset();
+                drawingPath.lineTo(X, Y);
+                canvas.drawPath(drawingPath, drawPaint);
+                canvas.drawCircle(X,Y,10,circlePaint);
+                drawingPath.reset();
                 break;
             default:
                 return false;
         }
-        //redraw
-        invalidate();
+        invalidate();   // refreshuje
         return true;
     }
 
-
+    // zmiana koloru pisaka
     public void setColor(int color){
         drawPaint.setColor(color);
+        circlePaint.setColor(color);
     }
-
+    // czyszczenie ekranu
     public void clearScreen(){
-        drawCanvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR);
+        canvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR);
     }
 
 }
