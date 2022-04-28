@@ -17,6 +17,11 @@ public class MainActivity extends AppCompatActivity {
 
         DrawingSurface drawingSurface = findViewById(R.id.drawingSurface);
         // clear surface
+        drawingSurface.setVisibility(View.VISIBLE);
+        drawingSurface.setDrawingCacheEnabled(true);
+        drawingSurface.setEnabled(true);
+        drawingSurface.invalidate();
+
         Button clearButton = findViewById(R.id.clear);
         clearButton.setOnClickListener(v->{
 

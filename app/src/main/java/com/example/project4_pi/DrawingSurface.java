@@ -7,184 +7,131 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
-public class DrawingSurface extends SurfaceView implements SurfaceHolder.Callback {
+public class DrawingSurface extends View {
 
-    private SurfaceHolder surfaceHolder;
-    private Boolean threadRunning = true;
-    private boolean stopThread = true;
-    private Object block = new Object();
+    static Path drawPath;
+    //drawing and canvas paint
+    private Paint drawPaint, canvasPaint;
+    //initial color
+    static int paintColor = 0xFFFF0000;
+    //stroke width
+    private  float STROKE_WIDTH = 5f;
+    //canvas
+    private Canvas drawCanvas;
+    //canvas bitmap
+    private Bitmap canvasBitmap;
+    //eraser mode
+    private boolean erase=false;
 
-    private DrawingThread drawingThread;
-    private Paint paint;
-    private Bitmap bitmap = null;
-    private Canvas canvas = null;
-
-    ///KONSTRUKTORY
-    public DrawingSurface(Context context) {
-        super(context);
-        init();
-    }
-
-    public DrawingSurface(Context context, AttributeSet attrs) {
+    //constructor
+    public DrawingSurface(Context context, AttributeSet attrs){
         super(context, attrs);
-//        surfaceHolder = getHolder();
-//        surfaceHolder.addCallback(this);
-        init();
-    }
-
-    public DrawingSurface(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init();
+        setupDrawing();
+        setErase(erase);
     }
 
 
-    /// METODY NADPISANE
+    private void setupDrawing(){
+        drawPath = new Path();
+        drawPaint = new Paint();
+        drawPaint.setColor(paintColor);
+        drawPaint.setAntiAlias(true);
+        drawPaint.setStrokeWidth(STROKE_WIDTH);
+        drawPaint.setStyle(Paint.Style.STROKE);
+        drawPaint.setStrokeJoin(Paint.Join.ROUND);
+        drawPaint.setStrokeCap(Paint.Cap.ROUND);
+        canvasPaint = new Paint(Paint.DITHER_FLAG);
+    }
+
+    //*************************************** View assigned size  ****************************************************
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        drawCanvas = new Canvas(canvasBitmap);
+    }
+
+    public void setErase(boolean isErase){
+        erase=isErase;
+        drawPaint = new Paint();
+        if(erase) {
+            setupDrawing();
+            int srcColor= 0x00000000;
+
+            PorterDuff.Mode mode = PorterDuff.Mode.CLEAR;
+            PorterDuffColorFilter porterDuffColorFilter = new PorterDuffColorFilter(srcColor, mode);
+
+            drawPaint.setColorFilter(porterDuffColorFilter);
+
+            drawPaint.setColor(srcColor);
+            drawPaint.setXfermode(new PorterDuffXfermode(mode));
+
+        }
+        else {
+
+            setupDrawing();
+
+        }
+    }
+
+    //************************************   draw view  *************************************************************
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
+        canvas.drawPath(drawPath, drawPaint);
+    }
+
+    //***************************   respond to touch interaction   **************************************************
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        performClick();
-        synchronized (block) {
-            if (event != null && canvas!=null) {
-                float touchX = event.getX();
-                float touchY = event.getY();
-                Path path = new Path();
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        path.moveTo(touchX, touchY);
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        canvas.drawPath(path, paint);
-                        path.lineTo(touchX, touchY);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        path.lineTo(touchX, touchY);
-                        canvas.drawPath(path, paint);
-                        path.reset();
-                        break;
-                }
-                //invalidate();
-            }
+
+        canvasPaint.setColor(paintColor);
+        float touchX = event.getX();
+        float touchY = event.getY();
+        //respond to down, move and up events
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                drawCanvas.drawCircle(touchX,touchY,10,drawPaint);
+                drawPath.moveTo(touchX, touchY);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                drawCanvas.drawPath(drawPath, drawPaint);
+                drawPath.lineTo(touchX, touchY);
+                break;
+            case MotionEvent.ACTION_UP:
+                drawPath.lineTo(touchX, touchY);
+                drawCanvas.drawPath(drawPath, drawPaint);
+                drawCanvas.drawCircle(touchX,touchY,10,drawPaint);
+                drawPath.reset();
+                break;
+            default:
+                return false;
         }
+        //redraw
+        invalidate();
         return true;
     }
 
 
-    public boolean performClick() {
-        resume();
-        return super.performClick();
-    }
-
-
-    @Override
-    public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
-        start();
-
-    }
-
-    @Override
-    public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-
-    }
-
-    @Override
-    public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
-        stop();
-    }
-
-
-
-    /// METODY STWORZONE
-    public void start(){
-        synchronized (threadRunning) {
-            threadRunning = true;
-        }
-        drawingThread = new DrawingThread();
-        drawingThread.start();
-    }
-
-    public void stop(){
-        synchronized (threadRunning) {
-            threadRunning = false;
-        }
-//        try {
-//            drawingThread.join();
-//        } catch (InterruptedException interruptedException) {
-//
-//        }
-    }
-
-    public void resume(){
-        if (stopThread) {
-            stop();
-            stopThread = false;
-        }else{
-            start();
-            stopThread = true;
-        }
-    }
-
-    public void init(){
-        surfaceHolder = getHolder();
-        surfaceHolder.addCallback(this);
-//        setWillNotDraw(false);
-//        setFocusable(true);
-        paint = new Paint();
-        paint.setColor(Color.RED);
-        paint.setStrokeWidth(2);
-        paint.setStyle(Paint.Style.FILL);
-        paint.setStyle(Paint.Style.STROKE);
-    }
-
-    protected void drawFrame(Canvas canvas){
-//        bitmap = Bitmap.createBitmap(getWidth(),getHeight(),Bitmap.Config.ARGB_8888);
-//        canvas.drawBitmap(bitmap,255,255,new Paint(Paint.DITHER_FLAG));
-
-    }
-
-
-
-
-    /// klasa obslugująca wątek rysowania
-    private class DrawingThread extends Thread{
-
-        public void run(){
-            while(threadRunning){
-                canvas = null;
-                try{
-                    synchronized (surfaceHolder) {
-                        if(!surfaceHolder.getSurface().isValid()) continue;
-                        canvas = surfaceHolder.lockCanvas(null);
-                        synchronized (block) {
-                            if (threadRunning) {
-                                drawFrame(canvas);
-                            }
-                        }
-                    }
-                } finally{
-                    if (canvas != null) {
-                        surfaceHolder.unlockCanvasAndPost(canvas);
-                    }
-                }
-                try{
-                    Thread.sleep(1000 / 25);
-                }catch(InterruptedException e){
-
-                }
-            }
-        }
-    }
-
     public void setColor(int color){
-        paint.setColor(color);
+        drawPaint.setColor(color);
     }
 
     public void clearScreen(){
-        canvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR);
+        drawCanvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR);
     }
+
 }
+
