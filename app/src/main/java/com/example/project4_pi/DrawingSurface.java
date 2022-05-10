@@ -39,7 +39,7 @@ public class DrawingSurface extends View {
         init();
     }
 
-    //initialization
+    //inicjalizacja sciezki do aktualizacji w celu narysowania oraz ustawienia pisaków
     private void init(){
         drawingPath = new Path();
         drawPaint = new Paint();
@@ -65,6 +65,7 @@ public class DrawingSurface extends View {
         canvas = new Canvas(bitmap);
     }
 
+    // ustawienie canvas tj dodanie bitmapy
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.drawBitmap(bitmap, 0, 0, canvasPaint);
